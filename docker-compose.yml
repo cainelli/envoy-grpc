@@ -1,0 +1,28 @@
+version: '3'
+services:
+  envoy-grpc:
+    depends_on:
+      - datadog-agent
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+      - 8081:8081
+    environment:
+      DD_AGENT_HOST: datadog-agent
+      DD_TRACE_AGENT_PORT: 8126
+      DD_SERVICE: local-envoy-grpc
+
+  datadog-agent:
+    environment:
+      - DD_API_KEY
+      - DD_APP_KEY
+      - DD_APM_ENABLED=true
+    ports:
+      - 8126:8126
+    image: 'datadog/agent'
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock:ro'
+      - '/proc/:/host/proc/:ro'
+      - '/sys/fs/cgroup/:/host/sys/fs/cgroup:ro'
