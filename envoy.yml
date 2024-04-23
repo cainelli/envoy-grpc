@@ -59,18 +59,19 @@ static_resources:
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
                       providers:
-                        auth0:
-                          issuer: https://example.com/
-                          audiences:
-                          - http://127.0.0.1
+                        jwt_local_provider:
                           remote_jwks:
                             http_uri:
                               uri: http://http.http.svc.cluster.local/.well-known/jwks.json
-                              cluster: outbound|8081||healthz.healthz.svc.cluster.local
+                              cluster: outbound|8081||http.http.svc.cluster.local
                               timeout: 5s
                             cache_duration:
                               seconds: 3
-
+                      rules:
+                      - match:
+                          prefix: /admin/
+                        requires:
+                          provider_name: jwt_local_provider
                   - name: envoy.filters.http.ext_authz.v3.ExtAuthz
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
