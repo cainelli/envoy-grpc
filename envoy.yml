@@ -51,16 +51,32 @@ static_resources:
                         - match:
                             prefix: "/"
                           route:
-                            cluster: outbound|8081||healthz.healthz.svc.cluster.local
+                            cluster: outbound|8081||http.http.svc.cluster.local
                             timeout: 5s
 
                 http_filters:
+                  - name: envoy.filters.http.jwt_authn
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
+                      providers:
+                        auth0:
+                          issuer: https://example.com/
+                          audiences:
+                          - http://127.0.0.1
+                          remote_jwks:
+                            http_uri:
+                              uri: http://http.http.svc.cluster.local/.well-known/jwks.json
+                              cluster: outbound|8081||healthz.healthz.svc.cluster.local
+                              timeout: 5s
+                            cache_duration:
+                              seconds: 3
+
                   - name: envoy.filters.http.ext_authz.v3.ExtAuthz
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
                       grpc_service:
                         envoy_grpc:
-                          cluster_name: outbound|8080||envoy-grpc.envoy-grpc.svc.cluster.local
+                          cluster_name: outbound|8080||grpc.grpc.svc.cluster.local
                         timeout: 5s
                       transport_api_version: V3
                       failure_mode_allow: false
@@ -83,7 +99,7 @@ static_resources:
                         response_trailer_mode: "SKIP"
                       grpc_service:
                         envoy_grpc:
-                          cluster_name: outbound|8080||envoy-grpc.envoy-grpc.svc.cluster.local
+                          cluster_name: outbound|8080||grpc.grpc.svc.cluster.local
                         timeout: 5s
 
                   - name: envoy.filters.http.lua.v3.Lua
@@ -91,7 +107,7 @@ static_resources:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
                       inline_code: |
                         function envoy_on_request(request_handle)
-                            local cluster_name = "outbound|8081||healthz.healthz.svc.cluster.local"
+                            local cluster_name = "outbound|8081||http.http.svc.cluster.local"
                             local req_headers = {
                                 [":method"] = "GET",
                                 [":path"] = "/",
@@ -122,7 +138,7 @@ static_resources:
                       rate_limit_service:
                         grpc_service:
                           envoy_grpc:
-                            cluster_name: outbound|8080||envoy-grpc.envoy-grpc.svc.cluster.local
+                            cluster_name: outbound|8080||grpc.grpc.svc.cluster.local
                           timeout: 5s
                         transport_api_version: V3
 
@@ -130,7 +146,7 @@ static_resources:
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
   clusters:
-    - name: outbound|8080||envoy-grpc.envoy-grpc.svc.cluster.local
+    - name: outbound|8080||grpc.grpc.svc.cluster.local
       connect_timeout: 1s
       type: STRICT_DNS
       typed_extension_protocol_options:
@@ -146,7 +162,7 @@ static_resources:
                 timeout: 5s
 
       load_assignment:
-        cluster_name: outbound|8080||envoy-grpc.envoy-grpc.svc.cluster.local
+        cluster_name: outbound|8080||grpc.grpc.svc.cluster.local
         endpoints:
         - lb_endpoints:
           - endpoint:
@@ -155,23 +171,12 @@ static_resources:
                   address: 127.0.0.1
                   port_value: 8080
 
-
-      load_assignment:
-        cluster_name: outbound|8080||ratelimit.ratelimit.svc.cluster.local
-        endpoints:
-        - lb_endpoints:
-          - endpoint:
-              address:
-                socket_address:
-                  address: 127.0.0.1
-                  port_value: 8080
-
-    - name: outbound|8081||healthz.healthz.svc.cluster.local
+    - name: outbound|8081||http.http.svc.cluster.local
       connect_timeout: 1s
       type: STRICT_DNS
       lb_policy: round_robin
       load_assignment:
-        cluster_name: outbound|8081||healthz.healthz.svc.cluster.local
+        cluster_name: outbound|8081||http.http.svc.cluster.local
         endpoints:
         - lb_endpoints:
           - endpoint:

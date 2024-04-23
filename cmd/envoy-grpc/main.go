@@ -70,6 +70,15 @@ func run() error {
 		w.WriteHeader(http.StatusOK)
 	})
 
+	keySet, err := service.NewKeySet()
+	if err != nil {
+		return fmt.Errorf("cannot create keyset: %w", err)
+	}
+	jwtAuthN := &service.JWTAuthn{
+		KeySet: keySet,
+	}
+	httpsrv.HandleFunc(service.JWKSPath, jwtAuthN.ServeHTTP)
+
 	var eg errgroup.Group
 	eg.Go(func() error {
 		slog.Info("listening", "addr", listener.Addr().String(), "type", "grpc")
