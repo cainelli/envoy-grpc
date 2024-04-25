@@ -48,7 +48,20 @@ func (svc *ExtProcessor) Process(procsrv extproc.ExternalProcessor_ProcessServer
 			span, _ := tracer.StartSpanFromContext(ctx, TraceMessageOperationName, RequestHeadersResourceName)
 			time.Sleep(10 * time.Millisecond)
 			if err := procsrv.Send(&extproc.ProcessingResponse{
-				Response: &extproc.ProcessingResponse_RequestHeaders{},
+				Response: &extproc.ProcessingResponse_RequestHeaders{
+					RequestHeaders: &extproc.HeadersResponse{
+						Response: &extproc.CommonResponse{
+							HeaderMutation: &extproc.HeaderMutation{
+								SetHeaders: []*corev3.HeaderValueOption{{
+									Header: &corev3.HeaderValue{
+										Key:      "x-req-header",
+										RawValue: []byte("ok"),
+									},
+								}},
+							},
+						},
+					},
+				},
 			}); err != nil {
 				span.Finish(tracer.WithError(err))
 				return fmt.Errorf("ResponseBody: failed sending response: %w", err)
@@ -56,6 +69,7 @@ func (svc *ExtProcessor) Process(procsrv extproc.ExternalProcessor_ProcessServer
 			span.Finish()
 		case *extproc.ProcessingRequest_RequestBody:
 			span, _ := tracer.StartSpanFromContext(ctx, TraceMessageOperationName, RequestBodyResourceName)
+			time.Sleep(10 * time.Microsecond)
 			if err := procsrv.Send(&extproc.ProcessingResponse{
 				Response: &extproc.ProcessingResponse_RequestBody{},
 			}); err != nil {
@@ -65,6 +79,7 @@ func (svc *ExtProcessor) Process(procsrv extproc.ExternalProcessor_ProcessServer
 			span.Finish()
 		case *extproc.ProcessingRequest_RequestTrailers:
 			span, _ := tracer.StartSpanFromContext(ctx, TraceMessageOperationName, RequestTrailersResourceName)
+			time.Sleep(10 * time.Microsecond)
 			if err := procsrv.Send(&extproc.ProcessingResponse{
 				Response: &extproc.ProcessingResponse_RequestTrailers{},
 			}); err != nil {
@@ -82,7 +97,7 @@ func (svc *ExtProcessor) Process(procsrv extproc.ExternalProcessor_ProcessServer
 							HeaderMutation: &extproc.HeaderMutation{
 								SetHeaders: []*corev3.HeaderValueOption{{
 									Header: &corev3.HeaderValue{
-										Key:      "x-custom-header",
+										Key:      "x-res-header",
 										RawValue: []byte("ok"),
 									},
 								}},
@@ -97,6 +112,7 @@ func (svc *ExtProcessor) Process(procsrv extproc.ExternalProcessor_ProcessServer
 			span.Finish()
 		case *extproc.ProcessingRequest_ResponseBody:
 			span, _ := tracer.StartSpanFromContext(ctx, TraceMessageOperationName, ResponseBodyResourceName)
+			time.Sleep(10 * time.Microsecond)
 			if err := procsrv.Send(&extproc.ProcessingResponse{
 				Response: &extproc.ProcessingResponse_ResponseBody{},
 			}); err != nil {
@@ -106,6 +122,7 @@ func (svc *ExtProcessor) Process(procsrv extproc.ExternalProcessor_ProcessServer
 			span.Finish()
 		case *extproc.ProcessingRequest_ResponseTrailers:
 			span, _ := tracer.StartSpanFromContext(ctx, TraceMessageOperationName, ResponseTrailersResourceName)
+			time.Sleep(10 * time.Microsecond)
 			if err := procsrv.Send(&extproc.ProcessingResponse{
 				Response: &extproc.ProcessingResponse_ResponseTrailers{},
 			}); err != nil {
