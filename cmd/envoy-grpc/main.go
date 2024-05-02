@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/cainelli/envoy-grpc/pkg/service"
-	"golang.org/x/sync/errgroup"
 
 	authv3 "github.com/envoyproxy/go-control-plane/envoy/service/auth/v3"
 	extproc "github.com/envoyproxy/go-control-plane/envoy/service/ext_proc/v3"
@@ -79,16 +78,14 @@ func run() error {
 	}
 	httpsrv.HandleFunc(service.JWKSPath, jwtAuthN.ServeHTTP)
 
-	var eg errgroup.Group
-	eg.Go(func() error {
+	errCh := make(chan error, 1)
+	go func() {
 		slog.Info("listening", "addr", listener.Addr().String(), "type", "grpc")
-		return server.Serve(listener)
-	})
-
-	eg.Go(func() error {
+		errCh <- server.Serve(listener)
+	}()
+	go func() {
 		slog.Info("listening", "addr", ":8081", "type", "http")
-		return http.ListenAndServe(":8081", httpsrv)
-	})
-
-	return eg.Wait()
+		errCh <- http.ListenAndServe(":8081", httpsrv)
+	}()
+	return <-errCh
 }
